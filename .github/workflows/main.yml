@@ -1,0 +1,29 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: |
+          mkdir -p project
+          for z in *.zip; do unzip -o "$z" -d project; done
+          GW=$(find project -name gradlew -type f | head -n 1)
+          if [ -z "$GW" ]; then echo "No gradlew found in the zip"; ls -R project | head -100; exit 1; fi
+          echo "PROJECT_DIR=$(dirname "$GW")" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RecoverX-APK
+          path: project/**/app/build/outputs/apk/debug/*.apk
